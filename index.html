@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat de atendimento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topo">
+    <span class="marca">Central de atendimento</span>
+    <nav>
+      <a href="index.html" aria-current="page">Chat</a>
+      <a href="painel.html">Painel</a>
+    </nav>
+  </header>
+
+  <main class="chat">
+    <ol id="mensagens" class="mensagens" aria-live="polite">
+      <li class="balao sistema">Olá! Descreva o seu problema e vamos encaminhá-lo ao setor responsável.</li>
+    </ol>
+    <form id="form-chat" class="entrada">
+      <label for="texto" class="so-leitor">Sua mensagem</label>
+      <textarea id="texto" rows="2" placeholder="Ex.: fui cobrado duas vezes no cartão" required></textarea>
+      <button type="submit">Enviar</button>
+    </form>
+  </main>
+
+  <script src="dados.js"></script>
+  <script src="chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel de acompanhamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topo">
+    <span class="marca">Central de atendimento</span>
+    <nav>
+      <a href="index.html">Chat</a>
+      <a href="painel.html" aria-current="page">Painel</a>
+    </nav>
+  </header>
+
+  <main class="painel">
+    <section>
+      <h1>Acompanhamento</h1>
+      <p id="resumo" class="resumo"></p>
+      <div id="barra" class="barra" role="img" aria-label="Distribuição de tickets por categoria"></div>
+      <div id="legenda" class="legenda"></div>
+    </section>
+
+    <section>
+      <div class="filtros">
+        <label for="filtro-prioridade">Prioridade</label>
+        <select id="filtro-prioridade">
+          <option value="todas">Todas</option>
+          <option value="urgente">Urgente</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <span class="espaco"></span>
+        <button id="btn-exemplos" type="button" class="secundario">Carregar exemplos</button>
+        <button id="btn-limpar" type="button" class="secundario">Limpar tudo</button>
+      </div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Protocolo</th>
+              <th>Assunto</th>
+              <th>Categoria</th>
+              <th>Prioridade</th>
+              <th>Status</th>
+              <th>Recebido</th>
+            </tr>
+          </thead>
+          <tbody id="corpo"></tbody>
+        </table>
+      </div>
+      <p id="vazio" class="vazio" hidden></p>
+    </section>
+  </main>
+
+  <script src="dados.js"></script>
+  <script src="painel.js"></script>
+</body>
+</html>

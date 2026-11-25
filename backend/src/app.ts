@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { config } from "./config";
-import { rotaNaoEncontrada, tratarErros } from "./error-handler";
+import { rotaNaoEncontrada, tratarErros } from "./middlewares/error-handler";
 import { InMemoryTicketRepository, type TicketRepository } from "./tickets/ticket.repository";
 import { criarTicketRouter } from "./tickets/ticket.routes";
 

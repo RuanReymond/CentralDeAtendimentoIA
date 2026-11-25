@@ -10,22 +10,27 @@ function adicionarBalao(texto, tipo) {
   lista.scrollTop = lista.scrollHeight;
 }
 
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const texto = campo.value.trim();
   if (!texto) return;
 
   adicionarBalao(texto, "cliente");
   campo.value = "";
+  campo.disabled = true;
 
-  const ticket = criarTicket(texto);
-  const depto = CATEGORIAS[ticket.categoria].depto;
-  setTimeout(() => {
+  try {
+    const ticket = await criarTicket(texto);
     adicionarBalao(
-      `Recebemos sua mensagem. Protocolo ${formatarProtocolo(ticket.id)}, encaminhada ao setor ${depto}. Um atendente responde em breve.`,
+      `Recebemos sua mensagem. Protocolo ${formatarProtocolo(ticket.id)}. Um atendente responde em breve.`,
       "sistema"
     );
-  }, 500);
+  } catch (erro) {
+    adicionarBalao(`Não foi possível enviar sua mensagem: ${erro.message}`, "sistema");
+  } finally {
+    campo.disabled = false;
+    campo.focus();
+  }
 });
 
 // Enter envia; Shift+Enter quebra a linha

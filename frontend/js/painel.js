@@ -64,7 +64,7 @@ function renderTabela(filtrados, totalGeral) {
     tr.appendChild(criar("td", "num", formatarProtocolo(t.id)));
 
     const tdAssunto = criar("td");
-    const btn = criar("button", "linha-toggle", t.assunto);
+    const btn = criar("button", "linha-toggle", t.assunto || "Sem assunto");
     btn.type = "button";
     btn.setAttribute("aria-expanded", String(abertos.has(t.id)));
     tdAssunto.appendChild(btn);
@@ -76,7 +76,7 @@ function renderTabela(filtrados, totalGeral) {
     tdCat.appendChild(spanCat);
     tr.appendChild(tdCat);
 
-    tr.appendChild(Object.assign(criar("td"), {})).appendChild(criar("span", "prio " + t.prioridade, PRIORIDADES[t.prioridade] || t.prioridade));
+    tr.appendChild(Object.assign(criar("td"), {})).appendChild(criar("span", "prio " + (t.prioridade || "indefinida"), PRIORIDADES[t.prioridade] || "Não definida"));
     tr.appendChild(criar("td", "", STATUS[t.status] || t.status));
     tr.appendChild(criar("td", "num", formatarData(t.criadoEm)));
 
@@ -86,7 +86,7 @@ function renderTabela(filtrados, totalGeral) {
     td.colSpan = 6;
     const grade = criar("div", "detalhe-grade");
     const a = criar("div"); a.append(criar("h2", "", "Mensagem do cliente"), criar("p", "", t.mensagem));
-    const b = criar("div"); b.append(criar("h2", "", "Resposta sugerida"), criar("p", "", t.respostaSugerida));
+    const b = criar("div"); b.append(criar("h2", "", "Resposta sugerida"), criar("p", "", t.respostaSugerida || "Ainda não disponível."));
     grade.append(a, b);
     td.appendChild(grade);
     detalhe.appendChild(td);
@@ -110,8 +110,15 @@ function renderTabela(filtrados, totalGeral) {
   }
 }
 
-function render() {
-  const todos = lerTickets().sort((x, y) => new Date(y.criadoEm) - new Date(x.criadoEm));
+async function render() {
+  let todos;
+  try {
+    todos = (await lerTickets()).sort((x, y) => new Date(y.criadoEm) - new Date(x.criadoEm));
+  } catch (erro) {
+    el("resumo").textContent = erro.message;
+    renderTabela([], 0);
+    return;
+  }
   const prio = el("filtro-prioridade").value;
   const filtrados = todos.filter(t =>
     (filtroCategoria === "todas" || t.categoria === filtroCategoria) &&
@@ -120,24 +127,12 @@ function render() {
   renderTabela(filtrados, todos.length);
 }
 
-el("filtro-prioridade").addEventListener("change", render);
+el("filtro-prioridade").addEventListener("change", () => { render(); });
 
 el("btn-exemplos").addEventListener("click", () => {
-  const agora = Date.now();
-  EXEMPLOS.forEach((msg, i) => criarTicket(msg, new Date(agora - i * 17 * 60000)));
-  render();
+  Promise.all(EXEMPLOS.map((msg) => criarTicket(msg)))
+    .then(() => render())
+    .catch((erro) => { el("resumo").textContent = erro.message; });
 });
-
-el("btn-limpar").addEventListener("click", () => {
-  if (confirm("Apagar todos os tickets salvos neste navegador?")) {
-    limparTickets();
-    abertos.clear();
-    filtroCategoria = "todas";
-    render();
-  }
-});
-
-// Atualiza sozinho quando um ticket chega pelo chat em outra aba
-window.addEventListener("storage", (e) => { if (e.key === CHAVE) render(); });
 
 render();

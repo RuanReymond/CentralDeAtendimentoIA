@@ -6,4 +6,6 @@ export const config = {
     .split(",")
     .map((origem) => origem.trim())
     .filter(Boolean),
+  // Sem DATABASE_URL o servidor usa o armazenamento em memória.
+  databaseUrl: process.env.DATABASE_URL || undefined,
 };

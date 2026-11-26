@@ -40,7 +40,7 @@ function ponto(cor) {
   return p;
 }
 
-// Ticket sem categoria (ou com categoria desconhecida) fica em "Aguardando classificação".
+// Ticket sem categoria (ou com categoria desconhecida) fica em "Sem categoria".
 function chaveCategoria(t) { return CATEGORIAS[t.categoria] ? t.categoria : "sem_categoria"; }
 function metaCategoria(chave) { return CATEGORIAS[chave] || SEM_CATEGORIA; }
 
@@ -66,7 +66,7 @@ function renderDistribuicao(todos) {
   const pendentes = contagem.sem_categoria;
   el("resumo").textContent = todos.length
     ? `${todos.length} ${todos.length === 1 ? "ticket" : "tickets"}, ${urgentes} ${urgentes === 1 ? "urgente" : "urgentes"}` +
-      (pendentes ? `, ${pendentes} aguardando classificação` : "")
+      (pendentes ? `, ${pendentes} sem categoria` : "")
     : "Nenhum ticket ainda.";
 
   const barra = el("barra");

@@ -29,3 +29,11 @@ export interface Ticket {
 export interface NovoTicket {
   mensagem: string;
 }
+
+// Dados que a IA preenche no ticket depois de classificar a mensagem.
+export interface DadosClassificacao {
+  categoria: Categoria;
+  prioridade: Prioridade;
+  assunto: string;
+  respostaSugerida: string;
+}

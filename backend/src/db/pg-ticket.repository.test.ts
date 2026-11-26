@@ -68,4 +68,34 @@ describe.skipIf(!url)("PgTicketRepository (PostgreSQL real)", () => {
     await expect(pool.query("INSERT INTO tickets (mensagem, categoria) VALUES ('x', 'rh')")).rejects.toThrow();
     await expect(pool.query("INSERT INTO tickets (mensagem) VALUES ('')")).rejects.toThrow();
   });
+
+  it("aplicarClassificacao grava os campos da IA e muda o status", async () => {
+    const criado = await repo.criar({ mensagem: "Fui cobrado duas vezes" });
+    const atualizado = await repo.aplicarClassificacao(criado.id, {
+      categoria: "financeiro",
+      prioridade: "urgente",
+      assunto: "Cobrança duplicada",
+      respostaSugerida: "Vamos verificar.",
+    });
+    expect(atualizado).toMatchObject({
+      id: criado.id,
+      categoria: "financeiro",
+      prioridade: "urgente",
+      assunto: "Cobrança duplicada",
+      respostaSugerida: "Vamos verificar.",
+      status: "aguardando_revisao",
+    });
+    expect((await repo.buscarPorId(criado.id))?.categoria).toBe("financeiro");
+  });
+
+  it("atualizarStatus muda só o status; ids inexistentes devolvem undefined", async () => {
+    const criado = await repo.criar({ mensagem: "teste de status" });
+    const atualizado = await repo.atualizarStatus(criado.id, "classificacao_manual");
+    expect(atualizado).toMatchObject({ status: "classificacao_manual", categoria: null });
+
+    expect(await repo.atualizarStatus(999999, "respondido")).toBeUndefined();
+    expect(
+      await repo.aplicarClassificacao(999999, { categoria: "outros", prioridade: "baixa", assunto: "abc", respostaSugerida: "x" }),
+    ).toBeUndefined();
+  });
 });

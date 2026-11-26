@@ -1,6 +1,13 @@
 import type { Pool } from "pg";
 import type { TicketRepository } from "../tickets/ticket.repository";
-import type { Categoria, NovoTicket, Prioridade, StatusTicket, Ticket } from "../tickets/ticket.types";
+import type {
+  Categoria,
+  DadosClassificacao,
+  NovoTicket,
+  Prioridade,
+  StatusTicket,
+  Ticket,
+} from "../tickets/ticket.types";
 
 interface LinhaTicket {
   id: number;
@@ -47,6 +54,26 @@ export class PgTicketRepository implements TicketRepository {
 
   async buscarPorId(id: number): Promise<Ticket | undefined> {
     const { rows } = await this.pool.query<LinhaTicket>("SELECT * FROM tickets WHERE id = $1", [id]);
+    return rows[0] ? paraTicket(rows[0]) : undefined;
+  }
+
+  async aplicarClassificacao(id: number, dados: DadosClassificacao): Promise<Ticket | undefined> {
+    const { rows } = await this.pool.query<LinhaTicket>(
+      `UPDATE tickets
+          SET categoria = $2, prioridade = $3, assunto = $4, resposta_sugerida = $5,
+              status = 'aguardando_revisao', atualizado_em = now()
+        WHERE id = $1
+        RETURNING *`,
+      [id, dados.categoria, dados.prioridade, dados.assunto, dados.respostaSugerida],
+    );
+    return rows[0] ? paraTicket(rows[0]) : undefined;
+  }
+
+  async atualizarStatus(id: number, status: StatusTicket): Promise<Ticket | undefined> {
+    const { rows } = await this.pool.query<LinhaTicket>(
+      "UPDATE tickets SET status = $2, atualizado_em = now() WHERE id = $1 RETURNING *",
+      [id, status],
+    );
     return rows[0] ? paraTicket(rows[0]) : undefined;
   }
 }

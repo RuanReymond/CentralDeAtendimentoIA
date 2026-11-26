@@ -7,8 +7,8 @@ const CATEGORIAS = {
   outros:          { nome: "Outros",          cor: "#6B7785", depto: "Triagem geral" }
 };
 
-// Ticket que a IA ainda não classificou (categoria nula no banco).
-const SEM_CATEGORIA = { nome: "Aguardando classificação", cor: null };
+// Ticket sem categoria: a IA ainda não respondeu ou o ticket foi para classificação manual.
+const SEM_CATEGORIA = { nome: "Sem categoria", cor: null };
 
 const PRIORIDADES = { urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa" };
 

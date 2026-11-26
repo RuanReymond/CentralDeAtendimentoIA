@@ -8,4 +8,10 @@ export const config = {
     .filter(Boolean),
   // Sem DATABASE_URL o servidor usa o armazenamento em memória.
   databaseUrl: process.env.DATABASE_URL || undefined,
+  ia: {
+    provider: process.env.IA_PROVIDER || "mock",
+    timeoutMs: Number(process.env.IA_TIMEOUT_MS) || 8000,
+    mockModo: process.env.IA_MOCK_MODO || "normal",
+    mockLatenciaMs: Number(process.env.IA_MOCK_LATENCIA_MS ?? 300),
+  },
 };

@@ -1,3 +1,4 @@
+import { criarProvider } from "./ai/provider.factory";
 import { createApp } from "./app";
 import { config } from "./config";
 import { PgTicketRepository } from "./db/pg-ticket.repository";
@@ -12,7 +13,10 @@ console.log(
     : "Armazenamento: memória (defina DATABASE_URL no .env para usar o PostgreSQL)",
 );
 
-const app = createApp(repo);
+const provider = criarProvider();
+console.log(`IA: provedor "${provider.nome}" (tempo limite de ${config.ia.timeoutMs} ms)`);
+
+const app = createApp(repo, { provider, timeoutMs: config.ia.timeoutMs });
 const servidor = app.listen(config.port, () => {
   console.log(`API rodando em http://localhost:${config.port}`);
 });

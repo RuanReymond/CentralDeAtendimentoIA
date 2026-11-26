@@ -1,8 +1,10 @@
 import { Router } from "express";
 import type { TicketRepository } from "./ticket.repository";
 import { criarTicketSchema, formatarErros } from "./ticket.schema";
+import type { Ticket } from "./ticket.types";
 
-export function criarTicketRouter(repo: TicketRepository) {
+// "classificar" (opcional) roda em segundo plano depois que o ticket já foi salvo e respondido.
+export function criarTicketRouter(repo: TicketRepository, classificar?: (ticket: Ticket) => Promise<void>) {
   const router = Router();
 
   // Recebe a mensagem do cliente e salva como "recebido" ANTES de qualquer chamada à IA,
@@ -15,6 +17,11 @@ export function criarTicketRouter(repo: TicketRepository) {
     }
     const ticket = await repo.criar({ mensagem: resultado.data.mensagem });
     res.status(201).json(ticket);
+
+    // A resposta ao cliente já foi enviada; a IA trabalha depois, sem fazê-lo esperar.
+    if (classificar) {
+      classificar(ticket).catch((erro) => console.error(`Falha ao processar o ticket #${ticket.id}:`, erro));
+    }
   });
 
   router.get("/", async (_req, res) => {

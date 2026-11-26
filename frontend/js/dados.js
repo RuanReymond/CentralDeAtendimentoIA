@@ -1,6 +1,4 @@
-// ===== Contrato de dados (o mesmo JSON que a IA vai devolver no futuro) =====
-const API_URL = window.API_URL || "http://localhost:3000";
-
+// Constantes compartilhadas pelo chat e pelo painel (o contrato de dados vive no backend).
 const CATEGORIAS = {
   financeiro:      { nome: "Financeiro",      cor: "#1F6FEB", depto: "Financeiro" },
   suporte_tecnico: { nome: "Suporte técnico", cor: "#7A3FD1", depto: "Suporte Técnico" },
@@ -9,34 +7,20 @@ const CATEGORIAS = {
   outros:          { nome: "Outros",          cor: "#6B7785", depto: "Triagem geral" }
 };
 
+// Ticket que a IA ainda não classificou (categoria nula no banco).
+const SEM_CATEGORIA = { nome: "Aguardando classificação", cor: null };
+
 const PRIORIDADES = { urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa" };
 
 const STATUS = {
   recebido: "Recebido",
+  aguardando_ia: "Aguardando IA",
   aguardando_revisao: "Aguardando revisão",
-  respondido: "Respondido",
   classificacao_manual: "Classificação manual",
-  aguardando_ia: "Aguardando IA"
+  respondido: "Respondido"
 };
 
 function formatarProtocolo(id) { return "#" + String(id).padStart(4, "0"); }
-
-async function lerTickets() {
-  const resposta = await fetch(`${API_URL}/tickets`);
-  if (!resposta.ok) throw new Error("Não foi possível carregar os tickets.");
-  return resposta.json();
-}
-
-async function criarTicket(mensagem) {
-  const resposta = await fetch(`${API_URL}/tickets`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mensagem })
-  });
-  const dados = await resposta.json().catch(() => ({}));
-  if (!resposta.ok) throw new Error(dados.mensagem || "Não foi possível criar o ticket.");
-  return dados;
-}
 
 const EXEMPLOS = [
   "Fui cobrado duas vezes no cartão este mês, preciso do estorno.",

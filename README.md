@@ -32,8 +32,8 @@ mesmo que a IA esteja fora do ar. A parte da IA (caixas "IA" e "JSON válido?") 
 - [x] 1. Estrutura do repositório (frontend e backend)
 - [x] 2. Backend base: Node.js, TypeScript e Express (criar e listar tickets)
 - [x] 3. Banco PostgreSQL, migrações e contrato Zod da resposta da IA
-- [ ] 4. Frontend ligado à API (em andamento)
-- [ ] 5. Serviço de IA com provedor simulado (que pode falhar de propósito)
+- [x] 4. Frontend ligado à API (polling no painel)
+- [ ] 5. Serviço de IA com provedor simulado (que pode falhar de propósito) -em andamento
 - [ ] 6. Validação da resposta e tratamento de resposta inválida
 - [ ] 7. API da IA indisponível: timeout, retentativas, circuit breaker e fila
 - [ ] 8. IA real gratuita (Gemini) usando a mesma interface

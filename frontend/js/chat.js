@@ -1,6 +1,7 @@
 const lista = document.getElementById("mensagens");
 const form = document.getElementById("form-chat");
 const campo = document.getElementById("texto");
+const botao = form.querySelector("button");
 
 function adicionarBalao(texto, tipo) {
   const li = document.createElement("li");
@@ -18,6 +19,7 @@ form.addEventListener("submit", async (e) => {
   adicionarBalao(texto, "cliente");
   campo.value = "";
   campo.disabled = true;
+  botao.disabled = true;
 
   try {
     const ticket = await criarTicket(texto);
@@ -26,9 +28,11 @@ form.addEventListener("submit", async (e) => {
       "sistema"
     );
   } catch (erro) {
-    adicionarBalao(`Não foi possível enviar sua mensagem: ${erro.message}`, "sistema");
+    adicionarBalao(`Sua mensagem não foi enviada. ${erro.message} Tente novamente.`, "sistema");
+    campo.value = texto; // devolve o texto para o cliente não precisar digitar de novo
   } finally {
     campo.disabled = false;
+    botao.disabled = false;
     campo.focus();
   }
 });

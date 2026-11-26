@@ -93,3 +93,11 @@ tr.detalhe td { background: #F7F9FB; }
   .topo { padding: .8rem 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { .barra .segmento { transition: none; } }
+
+/* Etapa 4: atualização periódica e tickets ainda sem classificação */
+.resumo { margin-bottom: .35rem; }
+.atualizacao { margin: 0 0 1rem; font-size: .85rem; color: var(--tinta-suave); }
+.atualizacao.erro { color: var(--urgente); font-weight: 500; }
+.barra .segmento.pendente { background: repeating-linear-gradient(45deg, #C9D0D7 0 6px, #E3E7EB 6px 12px); }
+.legenda .ponto.pendente, .cat .ponto.pendente { background: repeating-linear-gradient(45deg, #9AA5B1 0 3px, #D5DBE1 3px 6px); }
+.prio.indefinida { color: var(--tinta-suave); font-weight: 400; font-style: italic; }

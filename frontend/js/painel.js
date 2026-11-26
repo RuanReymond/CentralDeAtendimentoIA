@@ -1,7 +1,18 @@
 const el = (id) => document.getElementById(id);
+
+const INTERVALO_MS = window.INTERVALO_PAINEL_MS || 5000; // de quanto em quanto tempo busca tickets novos
+const INTERVALO_MAX_MS = 30000;                          // espera máxima quando o servidor está fora
+
+let tickets = [];
+let ultimaResposta = "";      // JSON da última resposta, para só redesenhar quando algo mudou
+let carregouAlgumaVez = false;
+let falhasSeguidas = 0;
+let carregando = false;
+let temporizador = null;
 let filtroCategoria = "todas";
 const abertos = new Set();
 
+// ---------- utilitários ----------
 function criar(tag, classe, texto) {
   const n = document.createElement(tag);
   if (classe) n.className = classe;
@@ -13,37 +24,69 @@ function formatarData(iso) {
   return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+function formatarHora(data) {
+  return data.toLocaleTimeString("pt-BR");
+}
+
+function resumir(texto, limite = 60) {
+  const t = texto.trim();
+  return t.length > limite ? t.slice(0, limite - 3) + "..." : t;
+}
+
 function ponto(cor) {
   const p = criar("span", "ponto");
-  p.style.background = cor;
+  if (cor) p.style.background = cor;
+  else p.classList.add("pendente");
   return p;
 }
 
-function renderDistribuicao(todos) {
-  const contagem = {};
-  Object.keys(CATEGORIAS).forEach(c => contagem[c] = 0);
-  todos.forEach(t => { if (contagem[t.categoria] !== undefined) contagem[t.categoria]++; });
+// Ticket sem categoria (ou com categoria desconhecida) fica em "Aguardando classificação".
+function chaveCategoria(t) { return CATEGORIAS[t.categoria] ? t.categoria : "sem_categoria"; }
+function metaCategoria(chave) { return CATEGORIAS[chave] || SEM_CATEGORIA; }
 
-  const urgentes = todos.filter(t => t.prioridade === "urgente").length;
+function mostrarStatus(texto, erro) {
+  const p = el("atualizacao");
+  p.textContent = texto;
+  p.classList.toggle("erro", erro);
+}
+
+function mostrarVazio(texto) {
+  const v = el("vazio");
+  v.hidden = false;
+  v.textContent = texto;
+}
+
+// ---------- desenho da tela ----------
+function renderDistribuicao(todos) {
+  const chaves = [...Object.keys(CATEGORIAS), "sem_categoria"];
+  const contagem = Object.fromEntries(chaves.map((c) => [c, 0]));
+  todos.forEach((t) => { contagem[chaveCategoria(t)]++; });
+
+  const urgentes = todos.filter((t) => t.prioridade === "urgente").length;
+  const pendentes = contagem.sem_categoria;
   el("resumo").textContent = todos.length
-    ? `${todos.length} ${todos.length === 1 ? "ticket" : "tickets"}, ${urgentes} ${urgentes === 1 ? "urgente" : "urgentes"}`
+    ? `${todos.length} ${todos.length === 1 ? "ticket" : "tickets"}, ${urgentes} ${urgentes === 1 ? "urgente" : "urgentes"}` +
+      (pendentes ? `, ${pendentes} aguardando classificação` : "")
     : "Nenhum ticket ainda.";
 
   const barra = el("barra");
   barra.replaceChildren();
-  Object.entries(contagem).forEach(([cat, qtd]) => {
+  chaves.forEach((chave) => {
+    const qtd = contagem[chave];
     if (!qtd) return;
+    const meta = metaCategoria(chave);
     const seg = criar("div", "segmento");
     seg.style.width = (qtd / todos.length * 100) + "%";
-    seg.style.background = CATEGORIAS[cat].cor;
-    seg.title = `${CATEGORIAS[cat].nome}: ${qtd}`;
+    if (meta.cor) seg.style.background = meta.cor;
+    else seg.classList.add("pendente");
+    seg.title = `${meta.nome}: ${qtd}`;
     barra.appendChild(seg);
   });
 
   const legenda = el("legenda");
   legenda.replaceChildren();
   const itens = [["todas", "Todas", "#17324D", todos.length],
-    ...Object.entries(CATEGORIAS).map(([c, d]) => [c, d.nome, d.cor, contagem[c]])];
+    ...chaves.map((c) => [c, metaCategoria(c).nome, metaCategoria(c).cor, contagem[c]])];
   itens.forEach(([chave, nome, cor, qtd]) => {
     const b = criar("button");
     b.type = "button";
@@ -54,17 +97,18 @@ function renderDistribuicao(todos) {
   });
 }
 
-function renderTabela(filtrados, totalGeral) {
+function renderTabela(filtrados) {
   const corpo = el("corpo");
   corpo.replaceChildren();
 
-  filtrados.forEach(t => {
-    const cat = CATEGORIAS[t.categoria] || CATEGORIAS.outros;
+  filtrados.forEach((t) => {
+    const cat = metaCategoria(chaveCategoria(t));
     const tr = criar("tr");
     tr.appendChild(criar("td", "num", formatarProtocolo(t.id)));
 
+    // Enquanto a IA não gera o assunto, mostra o começo da mensagem do cliente.
     const tdAssunto = criar("td");
-    const btn = criar("button", "linha-toggle", t.assunto || "Sem assunto");
+    const btn = criar("button", "linha-toggle", t.assunto || resumir(t.mensagem));
     btn.type = "button";
     btn.setAttribute("aria-expanded", String(abertos.has(t.id)));
     tdAssunto.appendChild(btn);
@@ -76,7 +120,10 @@ function renderTabela(filtrados, totalGeral) {
     tdCat.appendChild(spanCat);
     tr.appendChild(tdCat);
 
-    tr.appendChild(Object.assign(criar("td"), {})).appendChild(criar("span", "prio " + (t.prioridade || "indefinida"), PRIORIDADES[t.prioridade] || "Não definida"));
+    const tdPrio = criar("td");
+    tdPrio.appendChild(criar("span", "prio " + (t.prioridade || "indefinida"), PRIORIDADES[t.prioridade] || "Pendente"));
+    tr.appendChild(tdPrio);
+
     tr.appendChild(criar("td", "", STATUS[t.status] || t.status));
     tr.appendChild(criar("td", "num", formatarData(t.criadoEm)));
 
@@ -95,44 +142,94 @@ function renderTabela(filtrados, totalGeral) {
       const abrir = detalhe.hidden;
       detalhe.hidden = !abrir;
       btn.setAttribute("aria-expanded", String(abrir));
-      abrir ? abertos.add(t.id) : abertos.delete(t.id);
+      if (abrir) abertos.add(t.id); else abertos.delete(t.id);
     });
 
     corpo.append(tr, detalhe);
   });
 
-  const vazio = el("vazio");
-  vazio.hidden = filtrados.length > 0;
-  if (!filtrados.length) {
-    vazio.textContent = totalGeral
+  if (filtrados.length) {
+    el("vazio").hidden = true;
+  } else {
+    mostrarVazio(tickets.length
       ? "Nenhum ticket com esses filtros. Escolha outra categoria ou prioridade."
-      : "Nenhum ticket ainda. Envie uma mensagem pelo chat ou carregue os exemplos.";
+      : "Nenhum ticket ainda. Envie uma mensagem pelo chat ou carregue os exemplos.");
   }
 }
 
-async function render() {
-  let todos;
-  try {
-    todos = (await lerTickets()).sort((x, y) => new Date(y.criadoEm) - new Date(x.criadoEm));
-  } catch (erro) {
-    el("resumo").textContent = erro.message;
-    renderTabela([], 0);
-    return;
-  }
+function render() {
   const prio = el("filtro-prioridade").value;
-  const filtrados = todos.filter(t =>
-    (filtroCategoria === "todas" || t.categoria === filtroCategoria) &&
+  const filtrados = tickets.filter((t) =>
+    (filtroCategoria === "todas" || chaveCategoria(t) === filtroCategoria) &&
     (prio === "todas" || t.prioridade === prio));
-  renderDistribuicao(todos);
-  renderTabela(filtrados, todos.length);
+  renderDistribuicao(tickets);
+  renderTabela(filtrados);
 }
 
-el("filtro-prioridade").addEventListener("change", () => { render(); });
+// ---------- atualização periódica (polling) ----------
+// Cada ciclo agenda o próximo só quando termina, então requisições nunca se sobrepõem.
+// Com o servidor fora do ar a espera dobra (5s, 10s, 20s, 30s...) e volta ao normal ao reconectar.
+function proximoIntervalo() {
+  return Math.min(INTERVALO_MS * 2 ** falhasSeguidas, INTERVALO_MAX_MS);
+}
 
-el("btn-exemplos").addEventListener("click", () => {
-  Promise.all(EXEMPLOS.map((msg) => criarTicket(msg)))
-    .then(() => render())
-    .catch((erro) => { el("resumo").textContent = erro.message; });
+function agendar() {
+  clearTimeout(temporizador);
+  if (document.hidden) return; // aba em segundo plano: não consulta o servidor
+  temporizador = setTimeout(atualizar, proximoIntervalo());
+}
+
+async function atualizar() {
+  if (carregando) return;
+  carregando = true;
+  clearTimeout(temporizador);
+  try {
+    const dados = await lerTickets();
+    carregouAlgumaVez = true;
+    falhasSeguidas = 0;
+    const json = JSON.stringify(dados);
+    if (json !== ultimaResposta) { // só redesenha se algo mudou
+      ultimaResposta = json;
+      tickets = [...dados].sort((x, y) => new Date(y.criadoEm) - new Date(x.criadoEm));
+      render();
+    }
+    mostrarStatus(`Atualizado às ${formatarHora(new Date())}. Verificando novidades a cada ${INTERVALO_MS / 1000}s.`, false);
+  } catch (erro) {
+    falhasSeguidas++;
+    const espera = Math.round(proximoIntervalo() / 1000);
+    if (carregouAlgumaVez) {
+      mostrarStatus(`${erro.message} Mostrando os últimos dados recebidos. Nova tentativa em ${espera}s.`, true);
+    } else {
+      mostrarStatus(`${erro.message} Nova tentativa em ${espera}s.`, true);
+      mostrarVazio("Não foi possível carregar os tickets. Confira se o backend está rodando.");
+    }
+  } finally {
+    carregando = false;
+    agendar();
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) clearTimeout(temporizador);
+  else atualizar(); // ao voltar para a aba, atualiza na hora
 });
 
-render();
+// ---------- eventos ----------
+el("filtro-prioridade").addEventListener("change", render);
+
+el("btn-exemplos").addEventListener("click", async () => {
+  if (!confirm(`Isso cria ${EXEMPLOS.length} tickets de exemplo no banco de dados. Continuar?`)) return;
+  const botao = el("btn-exemplos");
+  botao.disabled = true;
+  try {
+    for (const mensagem of EXEMPLOS) await criarTicket(mensagem); // em sequência, para manter a ordem
+  } catch (erro) {
+    mostrarStatus(erro.message, true);
+  } finally {
+    botao.disabled = false;
+    atualizar();
+  }
+});
+
+mostrarVazio("Carregando tickets...");
+atualizar();
